@@ -31,7 +31,8 @@ class CaseWorker
       third_party_requirements: {
         mvr: '',
         mib: ''
-      }
+      },
+      third_party_send_attempts: 0
     }
   end
 
