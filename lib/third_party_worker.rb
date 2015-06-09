@@ -19,9 +19,27 @@ class ThirdPartyWorker
       puts " [x] #{delivery_info.routing_key}:#{body}"
 
       parsed_body = JSON.parse(body, symbolize_names: true)
-      # Read third party node
-      # Order requirements
+      parsed_body[:third_party_send_attempts] += 1
+
+      if third_party_present?(parsed_body)
+        # Ordering requirements
+        # Message Put in a comment that says: ORDERING REQUIREMENTS!
+        # Send along to reqs_ordered
+      elsif parsed_body[:third_party_send_attempts] > 1
+        # Send to Error queue
+      else
+        # Send to Retry labs queue
+      end
+
       # publish
+    end
+  end
+
+  def third_party_present?(body)
+    if body[:third_party_requirements]
+      return true
+    else
+      return false
     end
   end
 
