@@ -20,18 +20,20 @@ class ThirdPartyWorker
 
       parsed_body = JSON.parse(body, symbolize_names: true)
       parsed_body[:third_party_send_attempts] += 1
+      parsed_body[:history] += {
+        worker_name: 'third_party_worker',
+        timestamp:   Time.now,
+        message:     'Case picked up by third_party_worker.'
+      }
 
       if third_party_present?(parsed_body)
-        # Ordering requirements
-        # Message Put in a comment that says: ORDERING REQUIREMENTS!
-        # Send along to reqs_ordered
+        parsed_body = order_reqs(parsed_body)
+        publish(parsed_body)
       elsif parsed_body[:third_party_send_attempts] > 1
         # Send to Error queue
       else
         # Send to Retry labs queue
       end
-
-      # publish
     end
   end
 
@@ -43,6 +45,16 @@ class ThirdPartyWorker
     end
   end
 
+  def order_reqs(parsed_body)
+    parsed_body[:status]   = 'third_party_reqs_ordered'
+    parsed_body[:history] += {
+      worker_name: 'third_party_worker',
+      timestamp:   Time.now,
+      message:     'Third Party requirements ordered.'
+    }
+    return parsed_body
+  end
+
   def publish(new_case)
     conn = Bunny.new
 
@@ -51,7 +63,13 @@ class ThirdPartyWorker
     ch = conn.create_channel
     x  = ch.topic('new_cases')
 
-    x.publish(new_case.to_json, routing_key: 'labs_processed')
+    new_case[:history] += {
+      worker_name: 'third_party_worker',
+      timestamp:   Time.now,
+      message:     'Case sent to New Business.'
+    }
+
+    x.publish(new_case.to_json, routing_key: 'new_business')
 
     puts "Published #{new_case[:case_id]}"
 
