@@ -16,6 +16,12 @@ class CaseWorker
     ch   = conn.create_channel
     q    = ch.queue('new_cases')
 
+    new_case[:history] += {
+        worker_name: 'case_worker',
+        timestamp:   Time.now,
+        message:     'Case published.'
+    }
+
     ch.default_exchange.publish(new_case.to_json, routing_key: q.name)
 
     puts "Published #{new_case[:case_id]}\n\n"
@@ -32,7 +38,14 @@ class CaseWorker
         mvr: '',
         mib: ''
       },
-      third_party_send_attempts: 0
+      third_party_send_attempts: 0,
+      history: [
+        {
+          worker_name: 'case_worker',
+          timestamp:   Time.now,
+          message:     'Case created.'
+        }
+      ]
     }
   end
 

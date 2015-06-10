@@ -14,6 +14,12 @@ class CaseRouter
     q.subscribe(block: true) do |delivery_info, properties, body|
       puts " [x] #{delivery_info.routing_key}:#{body}"
 
+      body[:history] += {
+          worker_name: 'case_router',
+          timestamp:   Time.now,
+          message:     'Case picked up by router.'
+      }
+
       route_case(JSON.parse(body, symbolize_names: true))
     end
   end
@@ -29,6 +35,12 @@ class CaseRouter
 
     ch = conn.create_channel
     x  = ch.topic('new_cases')
+
+    new_case[:history] += {
+        worker_name: 'case_router',
+        timestamp:   Time.now,
+        message:     "Case routed to #{routing_key}_worker."
+    }
 
     x.publish(new_case.to_json, routing_key: routing_key)
 
